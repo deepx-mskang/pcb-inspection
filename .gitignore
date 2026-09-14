@@ -1,0 +1,23 @@
+# Model artifacts -- the .dxnn files are too large for git, and the PatchCore
+# memory bank travels with them. All of it ships in the distribution tar;
+# see README.md ("Models and datasets").
+models/
+
+# Datasets -- rebuilt by fetch_datasets.py from the original public sources.
+data/
+
+# Runtime output and local bootstrap artifacts
+demo_out/
+dx-runtime/
+venv/
+.venv/
+__pycache__/
+*.tar.gz
+
+# Machine-local interpreter record written by setup.sh
+.dx_python
+# Supervisor log
+booth.log
+
+# Build-process log: contains local absolute paths, not useful to a clone
+session.log
