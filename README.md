@@ -19,9 +19,17 @@ not a reload.
 ## Run it
 
 ```bash
+git clone git@github.com:deepx-mskang/pcb-inspection.git
+cd pcb-inspection
+tar xzf /path/to/pcb-inspection-assets.tar.gz   # models/ + data/, see below
 bash setup.sh     # once per machine
 bash run.sh       # opens fullscreen
 ```
+
+The assets tar unpacks **at the repo root** — its paths are `models/…` and
+`data/…`, so it drops straight into the clone. Both are gitignored, so nothing
+it adds can be committed by accident. Without it `setup.sh` downloads the
+datasets itself and tells you the models are missing.
 
 | key | |
 |---|---|
@@ -99,12 +107,26 @@ sudo systemctl enable dxrt     # otherwise it will not come back after a reboot
 
 ## Models and datasets
 
-**Models** (3 × `.dxnn`, 96 MB) are **not in git** — they ship in the
-distribution tar. Without them `setup.sh` says so and points at it.
+Neither is in git. Both ship in **`pcb-inspection-assets.tar.gz`** (220 MB),
+which contains exactly the two directories git leaves out:
 
-**Datasets** are slices of public sets, rebuilt on demand by `fetch_datasets.py`.
-setup.sh runs it only for a slice missing from the path the demo reads, so a copy
-unpacked from the tar never downloads anything.
+```
+models/   5 files, 102 MB   3 × .dxnn + CH2's PatchCore memory bank
+data/     886 images, 139 MB
+```
+
+**Models** cannot be reconstructed — the `.dxnn` files come out of the compile
+sessions, and `bank_pcb1.npz` + `bank_pcb1.meta.json` are CH2's memory bank and
+its threshold. Copying only the `.dxnn` files leaves CH2 dead, so move the whole
+`models/` directory.
+
+**Datasets** *can* be reconstructed: `fetch_datasets.py` rebuilds any slice
+missing from the path the demo reads, so a clone without the tar still gets
+them. setup.sh calls it automatically. Two caveats on a fresh machine —
+VisA is a 1.9 GB download, and **SolDef_AI has no anonymous download**: the
+script uses the `kaggle` CLI if `~/.kaggle/kaggle.json` is configured, otherwise
+it prints the page URL and the path to unzip into, and CH3 stays empty. For a
+booth machine, use the tar and skip both problems.
 
 | slice | source | what is taken |
 |---|---|---|
@@ -113,9 +135,7 @@ unpacked from the tar never downloads anything.
 | `data/ch2_visa` (100+200) | [VisA](https://amazon-visual-anomaly.s3.us-west-2.amazonaws.com/VisA_20220922.tar), 1.9 GB | pcb1: all `Anomaly` + first 200 sorted `Normal` — the range CH2 indexes |
 
 Rebuilding into a scratch directory reproduced byte-identical images. Only
-images are fetched; the loops never read labels. SolDef_AI has no
-credential-free download — the script uses the `kaggle` CLI if configured,
-otherwise it prints the page URL and the path to unzip into.
+images are fetched; the loops never read labels.
 
 ## Troubleshooting
 
@@ -124,7 +144,7 @@ otherwise it prints the page URL and the path to unzip into.
 | `dxrt service is not running` | `sudo systemctl start dxrt` |
 | `ModuleNotFoundError: dx_engine` | `bash setup.sh`, or set `DX_PYTHON` |
 | `NO CAMERA` in the live cell | check the USB cable — it retries every 3 s; the other 3 channels keep running |
-| models missing | unpack the distribution tar over this directory |
+| models missing | `tar xzf pcb-inspection-assets.tar.gz` at the repo root |
 | demo dies instantly, repeatedly | `booth.sh` gives up after 5 tries; the error is in `booth.log` |
 
 A corrupt `.dxnn` **segfaults inside the native runtime** — no Python error is
